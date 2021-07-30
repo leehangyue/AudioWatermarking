@@ -1,0 +1,673 @@
+package processing;
+
+/**
+ * Exterior class, engaged in UI
+ */
+
+import pre_posts.*;
+
+import java.io.*;
+import java.util.ArrayList;
+
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+public class ReadWatermark {
+	
+	Watermark watermark;
+	File wavInFile = null, imageOutFile1 = null, imageOutFile2 = null;
+	boolean saveWatermark = false;
+	
+	public ReadWatermark() {//Use GUI to obtain the wav and watermark files
+		/*
+		 * From: https://stackoverflow.com/questions/10621687/how-to-get-full-path-directory-from-file-chooser
+		 * http://www.java2s.com/Code/Java/Swing-JFC/SelectadirectorywithaJFileChooser.htm
+		 * Answered by https://stackoverflow.com/users/381161/malcolm-smith at May 16 '12 at 15:27, 2017
+		 */
+		
+		wavInFile = chooseAudioInWithUI(".");
+		
+		String keyFilePath = wavInFile.toString();
+		keyFilePath = keyFilePath.substring(0, keyFilePath.length()-4);
+		keyFilePath += ".bin";//default key
+		File keyFile = new File(keyFilePath);
+		if(keyFile.exists()) {
+			int ans_INT = JOptionPane.showConfirmDialog (null, 
+					"Use the default key?", 
+					"Default key found", JOptionPane.YES_NO_OPTION);
+			if(ans_INT == JOptionPane.NO_OPTION)//chose not to use default key
+				keyFile = chooseKeyFileWithUI(wavInFile.getPath());
+		}
+		if(!keyFile.exists()) {//default key file not found
+			keyFile = chooseKeyFileWithUI(wavInFile.getPath());
+		}
+		
+		watermark = new Watermark();
+		while(true) {
+			try {
+				watermark.loadKey(keyFile);
+				break;
+			}
+			catch(WatermarkException e) {
+				int ans_INT = JOptionPane.showConfirmDialog (null, 
+						"Press Yes to choose, press No to exit", 
+						"Invalid key file! Please choose another.", JOptionPane.YES_NO_OPTION);
+				if(ans_INT == JOptionPane.NO_OPTION) System.exit(0);
+				keyFile = chooseKeyFileWithUI(wavInFile.getPath());
+			}
+		}//Now the key is loaded
+		
+		int ans_INT = JOptionPane.showConfirmDialog (null, 
+				"Do you wish to save decoded watermark as an image file?", 
+				"Choose an option", JOptionPane.YES_NO_OPTION);
+		if(ans_INT == JOptionPane.NO_OPTION) saveWatermark = false;
+		else {
+			saveWatermark = true;
+			//Output path and name cannot be modified... maybe this can be optimized in later versions
+			String imageOutFilePath = wavInFile.toString();
+			imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-4);
+			if(imageOutFilePath.substring(imageOutFilePath.length()-7, imageOutFilePath.length())
+					== "-marked")
+				imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-7);
+			
+			imageOutFile1 = new File(imageOutFilePath + "1.png");
+			imageOutFile2 = new File(imageOutFilePath + "2.png");
+			try {
+				imageOutFile1.createNewFile();
+				imageOutFile2.createNewFile();
+			} catch (IOException e) {
+				try {
+					imageOutFile1 = new File(imageOutFilePath + "1_new.png");
+					imageOutFile1.createNewFile();
+					imageOutFile2 = new File(imageOutFilePath + "2_new.png");
+					imageOutFile2.createNewFile();
+				}
+				catch(IOException e1) {
+					System.out.println("Error creating png files!");
+					saveWatermark = false;
+				}
+			}
+		}
+	}
+	
+	public ReadWatermark(String defaultWavFilePath, String defaultKeyFilePath, boolean saveWatermark) {
+		wavInFile = new File(defaultWavFilePath);
+		File keyFile = new File(defaultKeyFilePath);
+		watermark = new Watermark();
+		while(true) {
+			try {
+				watermark.loadKey(keyFile);
+				break;
+			}
+			catch(WatermarkException e) {
+				int ans_INT = JOptionPane.showConfirmDialog (null, 
+						"Press Yes to choose, press No to exit", 
+						"Invalid key file! Please choose another.", JOptionPane.YES_NO_OPTION);
+				if(ans_INT == JOptionPane.NO_OPTION) System.exit(0);
+				keyFile = chooseKeyFileWithUI(wavInFile.getPath());
+			}
+		}//Now the key is loaded
+		
+		if(saveWatermark == true) {
+			//Output path and name cannot be modified... maybe this can be optimized in later versions
+			String imageOutFilePath = wavInFile.toString();
+			imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-4);
+			if(imageOutFilePath.substring(imageOutFilePath.length()-7, imageOutFilePath.length())
+					== "-marked")
+				imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-7);
+			imageOutFile1 = new File(imageOutFilePath + "1.png");
+			imageOutFile2 = new File(imageOutFilePath + "2.png");
+			try {
+				imageOutFile1.createNewFile();
+				imageOutFile2.createNewFile();
+			} catch (IOException e) {
+				try {
+					imageOutFile1 = new File(imageOutFilePath + "1_new.png");
+					imageOutFile1.createNewFile();
+					imageOutFile2 = new File(imageOutFilePath + "2_new.png");
+					imageOutFile2.createNewFile();
+				}
+				catch(IOException e1) {
+					System.out.println("Error creating png files!");
+					saveWatermark = false;
+				}
+			}
+		}
+		this.saveWatermark = saveWatermark;
+	}
+	
+	//For directory or multi-file processing (call this in an outside loop)
+	public ReadWatermark(File wavInFile, File keyFile, boolean saveWatermark) {
+		this.wavInFile = wavInFile;
+		watermark = new Watermark();
+		while(true) {
+			try {
+				watermark.loadKey(keyFile);
+				break;
+			}
+			catch(WatermarkException e) {
+				int ans_INT = JOptionPane.showConfirmDialog (null, 
+						"Press Yes to choose, press No to exit", 
+						"Invalid key file! Please choose another.", JOptionPane.YES_NO_OPTION);
+				if(ans_INT == JOptionPane.NO_OPTION) System.exit(0);
+				keyFile = chooseKeyFileWithUI(wavInFile.getPath());
+			}
+		}//Now the key is loaded
+		
+		if(saveWatermark == true) {
+			//Output path and name cannot be modified... maybe this can be optimized in later versions
+			String imageOutFilePath = wavInFile.toString();
+			imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-4);
+			if(imageOutFilePath.substring(imageOutFilePath.length()-7, imageOutFilePath.length())
+					== "-marked")
+				imageOutFilePath = imageOutFilePath.substring(0, imageOutFilePath.length()-7);
+			imageOutFile1 = new File(imageOutFilePath + "1.png");
+			imageOutFile2 = new File(imageOutFilePath + "2.png");
+			try {
+				imageOutFile1.createNewFile();
+				imageOutFile2.createNewFile();
+			} catch (IOException e) {
+				try {
+					imageOutFile1 = new File(imageOutFilePath + "1_new.png");
+					imageOutFile1.createNewFile();
+					imageOutFile2 = new File(imageOutFilePath + "2_new.png");
+					imageOutFile2.createNewFile();
+				}
+				catch(IOException e1) {
+					System.out.println("Error creating png files!");
+					saveWatermark = false;
+				}
+			}
+		}
+		this.saveWatermark = saveWatermark;
+	}
+	
+	public int Decode() {
+		int windowWidth, numOfChannels, maskIndex = 0, maskWidth;
+		long numOfSamples;//This numOfSamples is WavFile.numOfSample if mono and WavFile.numOfFrames if multi-channel
+		double[][] mask_temp1, mask_temp2, mask1, mask2;
+		WavFile wavIn = null;
+		STFTFrame stftFrame;
+		
+		boolean smooth = watermark.isModeSmooth();
+		boolean robust = watermark.isModeRobust();
+		
+		if(!smooth)	windowWidth = 1024;//Do not modify! Relevant to Watermark.getMask22!
+		else windowWidth = 4096;//Do not modify! Relevant to Watermark.getMask22!
+		stftFrame = new STFTFrame(windowWidth);//Instantiate STFTFrame
+		
+		try {
+			wavIn = new WavFile(wavInFile);
+		}
+		catch(IOException eIO) {
+			JOptionPane.showMessageDialog(null, "Error reading file!\n"
+					+ "Please put the default wav file in the default path!");
+			return -1;//If so the program terminates
+		}
+		catch(WavFileException e) {
+			JOptionPane.showMessageDialog(null, "Errors in wav format!\n"
+					+ "Please choose another. "+e);
+			return -1;//If so the program terminates
+		}
+		numOfSamples = wavIn.getNumFrames();
+		if(numOfSamples < windowWidth) {
+			JOptionPane.showMessageDialog(null, "Input wav file is too short! Program terminates.");
+			System.exit(-1);
+		}
+		numOfChannels = wavIn.getNumChannels();
+		
+		maskWidth = watermark.getWidth();
+		if(robust) maskWidth /= 2;
+		
+		mask_temp1 = new double[maskWidth][windowWidth];
+		mask_temp2 = new double[maskWidth][windowWidth];
+		mask1 = new double[maskWidth][windowWidth];
+		mask2 = new double[maskWidth][windowWidth];
+		
+		/**
+		 * Explanation:
+		 * 
+		 * 1. The audio is loaded from file to bufferSTFT:
+		 * 
+		 *    bufferSTFT [0  0  ...  0  0  0  0  ...  0]
+		 *               before...
+		 *               after...
+		 *               [0  0  ...  0 (a frame of audio)]
+		 *               
+		 * 2. The audio is windowed and copied to currentSTFT:
+		 *    
+		 *              (a frame of audio)
+		 *                      *
+		 *                 (windowFunc)
+		 *   currentSTFT [windowed audio]
+		 *   
+		 * 3. currentSTFT is set as the amplitude spectrum of the windowed audio
+		 * 
+		 *   currentSTFT [amplitude spectrum]
+		 *   
+		 * 4. currentSTFT is written to a column of mask_temp
+		 *    
+		 * 5. Each time when a mask_temp is full, it is normalized (row and column)
+		 *    and added to mask1 in case of odd-numbered frames 
+		 *           or to mask2 in case of even-numbered frames
+		 *    For the last frame which might be uncompleted, it is treated as if completed
+		 * 	
+		 * 6. Repeat from 1 on
+		 *  
+		 * 7. Masks are normalized (scaled according to RMS)
+		 *   
+		 * 8. Masks are sent to Watermark via setMask and decoded and visualized (and saved if requested)
+		 * 
+		 */
+		
+		if(numOfChannels >= 1) {//Otherwise the audio file format is illegal
+			double[][] bufferSTFT = new double[numOfChannels][5 * windowWidth / 4];
+			double[] currentSTFT = new double[windowWidth];
+			double[] windowFunc = new double[windowWidth];
+			windowFunc = stftFrame.HanningWindow(windowWidth);
+			
+			for(long sampleCounter=windowWidth; sampleCounter<numOfSamples; sampleCounter+=windowWidth/2) {
+				{//Read once and process two windows at a time
+					if(sampleCounter == windowWidth) {//the first loading
+						try {
+							wavIn.readFrames(bufferSTFT, windowWidth/4, windowWidth);
+							//    readFrames(buffer, offset_writing_buffer, write_how_many);
+						}
+						catch(IOException eIO) {
+							JOptionPane.showMessageDialog(null, "Error reading wav file!");
+							return -1;//If so the program terminates
+						}
+						catch(WavFileException eWav) {
+							JOptionPane.showMessageDialog(null, "Unexpected wav file format!");
+							return -1;//If so the program terminates
+						}
+					}
+					else {//after the first loading
+						try {
+							wavIn.readFrames(bufferSTFT, 3*windowWidth/4, windowWidth/2);
+							//    readFrames(buffer, offset_writing_buffer, write_how_many);
+						}
+						catch(IOException eIO) {
+							JOptionPane.showMessageDialog(null, "Error reading wav file!");
+							return -1;//If so the program terminates
+						}
+						catch(WavFileException eWav) {
+							JOptionPane.showMessageDialog(null, "Unexpected wav file format!");
+							return -1;//If so the program terminates
+						}
+					}
+					
+					for(int twice=0; twice<2; twice++) {
+						for(int ch=0; ch<numOfChannels; ch++) {
+							if(twice == 0) {//odd-numbered frames
+								for(int i=0; i<windowWidth; i++) {
+									currentSTFT[i] = bufferSTFT[ch][i]
+											* windowFunc[i];
+								}
+							}
+							else {//even-numbered frames
+								for(int i=0; i<windowWidth; i++) {
+									currentSTFT[i] = bufferSTFT[ch][i + windowWidth/4]
+											* windowFunc[i];
+								}
+							}
+							
+							stftFrame.loadAudioFrame(currentSTFT);
+							stftFrame.calcFFT();
+							currentSTFT = stftFrame.getFrameAmp();
+							
+							if(twice == 0) {//odd-numbered frames
+								if(ch == 0) {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp1[maskIndex][index] = currentSTFT[index];
+									}
+								}
+								else {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp1[maskIndex][index] += currentSTFT[index];
+									}
+								}
+							}
+							else {//even-numbered frames
+								if(ch == 0) {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp2[maskIndex][index] = currentSTFT[index];
+									}
+								}
+								else {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp2[maskIndex][index] += currentSTFT[index];
+									}
+								}
+							}
+						}//end of channel loop
+						
+						if(twice > 0) maskIndex++;//Two mask_temp-s are set within the "twice" loop
+						if(maskIndex >= maskWidth) {
+							maskIndex = 0;
+							//Normalize the two mask_temp-s
+							
+							//mask_temp1 = LogMaskNormalize(mask_temp1);
+							//mask_temp2 = LogMaskNormalize(mask_temp2);
+							
+							for(int i=0; i<maskWidth; i++) {
+								for(int j=0; j<windowWidth; j++) {
+									mask1[i][j] += mask_temp1[i][j];
+									mask2[i][j] += mask_temp2[i][j];
+								}
+							}
+						}
+					}//end of the "twice" loop
+					for(int ch=0; ch<numOfChannels; ch++) {//Move bufferSTFT
+						for(int i=0; i<windowWidth/2; i++) {
+							bufferSTFT[ch][i] = bufferSTFT[ch][i + windowWidth/2];
+						}
+					}
+				}//end of the "process" block
+			}//end of sample counter loop. Watermarking almost done...
+			
+			long remainingSamples = wavIn.getFramesRemaining();
+			if(remainingSamples > 0) {//Num of remaining frames must < windowWidth/2
+				
+				try {
+					wavIn.readFrames(bufferSTFT, 3*windowWidth/4, (int)remainingSamples);
+					//    readFrames(buffer, offset_writing_buffer, write_how_many);
+				}
+				catch(IOException eIO) {
+					JOptionPane.showMessageDialog(null, "Error reading wav file!");
+					return -1;//If so the program terminates
+				}
+				catch(WavFileException eWav) {
+					JOptionPane.showMessageDialog(null, "Unexpected wav file format!");
+					return -1;//If so the program terminates
+				}
+				//pad zeros for the rest
+				for(int ch=0; ch<numOfChannels; ch++){
+					for(int i=3*windowWidth/4+(int)remainingSamples; i<windowWidth*5/4; i++){
+						bufferSTFT[ch][i] = 0;
+					}
+				}
+				
+				{//Process the last two windows
+					for(int twice=0; twice<2; twice++) {
+						for(int ch=0; ch<numOfChannels; ch++) {
+							if(twice == 0) {//odd-numbered frames
+								for(int i=0; i<windowWidth; i++) {
+									currentSTFT[i] = bufferSTFT[ch][i]
+											* windowFunc[i];
+								}
+							}
+							else {//even-numbered frames
+								for(int i=0; i<windowWidth; i++) {
+									currentSTFT[i] = bufferSTFT[ch][i + windowWidth/4]
+											* windowFunc[i];
+								}
+							}
+							
+							stftFrame.loadAudioFrame(currentSTFT);
+							stftFrame.calcFFT();
+							currentSTFT = stftFrame.getFrameAmp();
+							
+							if(twice == 0) {//odd-numbered frames
+								if(ch == 0) {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp1[maskIndex][index] = currentSTFT[index];
+									}
+								}
+								else {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp1[maskIndex][index] += currentSTFT[index];
+									}
+								}
+							}
+							else {//even-numbered frames
+								if(ch == 0) {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp2[maskIndex][index] = currentSTFT[index];
+									}
+								}
+								else {
+									for(int index=0; index<windowWidth; index++) {
+										mask_temp2[maskIndex][index] += currentSTFT[index];
+									}
+								}
+							}
+						}//end of channel loop
+						
+						if(twice > 0) maskIndex++;//Two mask_temp-s are set within the "twice" loop
+						if(maskIndex >= maskWidth) {
+							maskIndex = 0;
+							//Normalize the two mask_temp-s
+							//mask_temp1 = LogMaskNormalize(mask_temp1);
+							//mask_temp2 = LogMaskNormalize(mask_temp2);
+							
+							for(int i=0; i<maskWidth; i++) {
+								for(int j=0; j<windowWidth; j++) {
+									mask1[i][j] += mask_temp1[i][j];
+									mask2[i][j] += mask_temp2[i][j];
+								}
+							}
+						}
+					}//end of the "twice" loop
+					
+				}//end of the processing block
+				
+			}//end of "if the number of remaining samples > 0"
+		}//end of the data processing
+		try {
+			wavIn.close();
+		}
+		catch(IOException e) {
+			JOptionPane.showInternalMessageDialog(null, "Error closing input file!");
+		}
+		
+		//Normalize
+		mask1 = LogMaskNormalize(mask1);
+		mask2 = LogMaskNormalize(mask2);
+		
+		double rms1 = CalcRMS(mask1);
+		double rms2 = CalcRMS(mask2);
+		
+		for(int i=0; i<maskWidth; i++) {
+			for(int j=0; j<windowWidth; j++) {
+				mask1[i][j] /= (2*rms1);//normalize
+				mask1[i][j] = Math.atan(mask1[i][j]) / Math.PI + 0.5;//DEBUG
+				mask2[i][j] /= (2*rms2);
+				mask2[i][j] = Math.atan(mask2[i][j]) / Math.PI + 0.5;
+			}
+		}//Range of mask = (0, 1)
+		
+		watermark.setMask(mask1);
+		try {
+			watermark.Decrypt();
+		}
+		catch(WatermarkException e){
+			JOptionPane.showMessageDialog(null, "Failed decrypting watermark1! Cause: "+e);
+		}
+		watermark.visualizeResult();
+		if(saveWatermark) {
+			try {
+				watermark.saveDecodedWatermark(imageOutFile1);
+			}
+			catch(WatermarkException e) {
+				JOptionPane.showMessageDialog(null, "Failed saving first decoded watermark!");
+			}
+		}
+		
+		watermark.setMask(mask2);
+		try {
+			watermark.Decrypt();
+		}
+		catch(WatermarkException e){
+			JOptionPane.showMessageDialog(null, "Failed decrypting watermark2! Cause: "+e);
+		}
+		watermark.visualizeResult();
+		if(saveWatermark) {
+			try {
+				watermark.saveDecodedWatermark(imageOutFile2);
+			}
+			catch(WatermarkException e) {
+				JOptionPane.showMessageDialog(null, "Failed saving second decoded watermark!");
+			}
+		}
+		
+		return 0;
+	}
+	
+	private File chooseAudioInWithUI(String defaultPath) {
+		File wavInFile = null;
+		final JFileChooser chooser = new JFileChooser();
+		while(wavInFile == null)
+		{
+			chooser.setCurrentDirectory(new java.io.File(defaultPath));
+			chooser.setDialogTitle("Select the audio file *.wav to mark");
+			chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			chooser.setAcceptAllFileFilterUsed(false);
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("Wav File","wav");
+			chooser.setFileFilter(filter);//chooser.addChoosableFileFilter(filter);
+			
+		    if( chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION ){
+		    	wavInFile = chooser.getSelectedFile();
+		    }
+			/*
+			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+			  System.out.println("getCurrentDirectory(): " + chooser.getCurrentDirectory());
+			  System.out.println("getSelectedFile() : " + chooser.getSelectedFile());
+			} else {
+			  System.out.println("No Selection ");
+			}
+			*/
+			
+			if(wavInFile == null) {
+				int ans_INT = JOptionPane.showConfirmDialog (null, 
+						"Do you wish to exit the program?",
+						"Wav File Not Selected", JOptionPane.YES_NO_OPTION);
+				if(ans_INT == JOptionPane.YES_OPTION) System.exit(0);
+			}
+		}//Now wavInFile is readied
+		return wavInFile;
+	}
+	
+	private File chooseKeyFileWithUI(String defaultPath) {
+		File keyFile = null;
+		final JFileChooser chooser = new JFileChooser();
+		while(keyFile == null)
+		{
+			chooser.setCurrentDirectory(new java.io.File(defaultPath));
+			chooser.setDialogTitle("Select the key file *.bin to use");
+			chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			chooser.setAcceptAllFileFilterUsed(false);
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("Key File","bin");
+			chooser.setFileFilter(filter);//chooser.addChoosableFileFilter(filter);
+			
+		    if( chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION ){
+		    	keyFile = chooser.getSelectedFile();
+		    }
+			
+			if(keyFile == null) {
+				int ans_INT = JOptionPane.showConfirmDialog (null, 
+						"Do you wish to exit the program?",
+						"Wav File Not Selected", JOptionPane.YES_NO_OPTION);
+				if(ans_INT == JOptionPane.YES_OPTION) System.exit(0);
+			}
+		}//Now keyFile is readied
+		return keyFile;
+	}
+	
+	private double[][] LogMaskNormalize(double[][] maskIn){
+		int maskWidth = maskIn.length, windowWidth = maskIn[0].length;
+		double temp;
+		
+		for(int i=0; i<maskWidth; i++) {
+			for(int j=0; j<windowWidth; j++) {
+				maskIn[i][j] = Math.max(maskIn[i][j], 1e-6);
+			}//Limit the minimum for logarithm calculation. P.s. 1e-6 = -120dB
+		}
+		
+		double[] maskAverage = new double[maskWidth];
+		for(int i=0; i<maskWidth; i++) {
+			for(int j=0; j<windowWidth; j++) {
+				maskIn[i][j] = Math.log(maskIn[i][j]);
+				maskAverage[i] += maskIn[i][j];
+			}
+		}
+		for(int i=0; i<maskWidth; i++) {
+			temp = maskAverage[i] / windowWidth;
+			for(int j=0; j<windowWidth; j++) {
+				maskIn[i][j] = maskIn[i][j] - temp;
+			}
+		}
+		
+		maskAverage = new double[windowWidth];
+		for(int i=0; i<maskWidth; i++) {
+			for(int j=0; j<windowWidth; j++) {
+				maskAverage[j] += maskIn[i][j];
+			}
+		}
+		for(int j=0; j<windowWidth; j++) {
+			maskAverage[j] /= maskWidth;
+		}
+		for(int i=0; i<maskWidth; i++) {
+			for(int j=0; j<windowWidth; j++) {
+				maskIn[i][j] = maskIn[i][j] - maskAverage[j];
+			}
+		}
+		
+		return maskIn;
+	}
+	
+	private double CalcRMS(double[][] inputArray) {
+		int m = inputArray.length;
+		int n = inputArray[0].length;
+		double rms = 0.0;
+		double buf;
+		for(int i=0; i<m; i++) {
+			for(int j=0; j<n; j++) {
+				buf = inputArray[i][j];
+				rms += buf*buf;
+			}
+		}
+		rms = Math.sqrt(rms/(m*n));
+		return rms;
+	}
+	
+	private void ShowRMS(double[][] inputArray, int id) {//DEBUG
+		int m = inputArray.length;
+		int n = inputArray[0].length;
+		double rms = 0.0;
+		double buf;
+		for(int i=0; i<m; i++) {
+			for(int j=0; j<n; j++) {
+				buf = inputArray[i][j];
+				rms += buf*buf;
+			}
+		}
+		rms = Math.sqrt(rms/(m*n));
+		System.out.println("RMS = " + rms + ", id = " + id);
+	}
+	
+	private void ShowRMS(double[] inputArray, int id) {//DEBUG
+		int n = inputArray.length;
+		double rms = 0.0;
+		double buf;
+		for(int i=0; i<n; i++) {
+			buf = inputArray[i];
+			rms += buf*buf;
+		}
+		rms = Math.sqrt(rms/n);
+		System.out.println("RMS = " + rms + ", id = " + id);
+	}
+	
+	private void ShowRMS(ArrayList<Complex> inputArray, int id) {//DEBUG
+		int n = inputArray.size();
+		double rms = 0.0;
+		Complex buf;
+		for(int i=0; i<n; i++) {
+			buf = inputArray.get(i);
+			rms += buf.real()*buf.real() + buf.imag()*buf.imag();
+		}
+		rms = Math.sqrt(rms/n);
+		System.out.println("RMS = " + rms + ", id = " + id);
+	}
+}
