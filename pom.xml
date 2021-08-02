@@ -1,18 +1,49 @@
-<project>
-	<build>
-	  <plugins>
-		<plugin>
-		  <groupId>com.heroku.sdk</groupId>
-		  <artifactId>heroku-maven-plugin</artifactId>
-		  <version>3.0.4</version>
-		  <configuration>
-			<appName>${heroku.spectromark-deployed}</appName>
-			<modelVersion>1.0</modelVersion>
-			<processTypes>
-			  <web>java $JAVA_OPTS -cp target/classes:target/dependency/* com.gui.GUI</web>
-			</processTypes>
-		  </configuration>
-		</plugin>
-	  </plugins>
-	</build>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <version>1.0-SNAPSHOT</version>
+    <artifactId>artifact</artifactId>
+    <dependencies></dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>appassembler-maven-plugin</artifactId>
+                <version>1.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>assemble</goal>
+                        </goals>
+                        <configuration>
+                            <assembleDirectory>target</assembleDirectory>
+                            <generateRepository>true</generateRepository>
+                            <programs>
+                                <program>
+                                    <mainClass>root.gui.GUI</mainClass>
+                                    <name>spectromark</name>
+                                </program>
+                            </programs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 </project>
