@@ -1,15 +1,17 @@
-<build>
-  <plugins>
-    <plugin>
-      <groupId>com.heroku.sdk</groupId>
-      <artifactId>heroku-maven-plugin</artifactId>
-      <version>3.0.4</version>
-      <configuration>
-        <appName>${heroku.spectromark-deployed}</appName>
-        <processTypes>
-          <web>java $JAVA_OPTS -cp target/classes:target/dependency/* com.gui.GUI</web>
-        </processTypes>
-      </configuration>
-    </plugin>
-  </plugins>
-</build>
+<project>
+	<build>
+	  <plugins>
+		<plugin>
+		  <groupId>com.heroku.sdk</groupId>
+		  <artifactId>heroku-maven-plugin</artifactId>
+		  <version>3.0.4</version>
+		  <configuration>
+			<appName>${heroku.spectromark-deployed}</appName>
+			<processTypes>
+			  <web>java $JAVA_OPTS -cp target/classes:target/dependency/* com.gui.GUI</web>
+			</processTypes>
+		  </configuration>
+		</plugin>
+	  </plugins>
+	</build>
+</project>
