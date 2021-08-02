@@ -1,0 +1,9 @@
+Sample pom.xml
+https://gist.github.com/alanfranz/1301100
+
+No web process running solution
+https://qiita.com/rebi/items/efd1c36f0a9e46222d80
+https://medium.com/@speedforcerun/heroku-deploy-no-web-process-running-6f6b4059765d
+
+Procfile
+https://devcenter.heroku.com/articles/preparing-a-codebase-for-heroku-deployment
